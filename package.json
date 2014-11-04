@@ -1,0 +1,32 @@
+{
+  "name": "koa-rethinkdb",
+  "version": "1.0.0",
+  "description": "Koa middleware for managing RethinkDB connections.",
+  "keywords": [
+    "rethinkdb",
+    "koa"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --check-leaks --harmony-generators -t 20000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mkleehammer/koa-rethinkdb.git"
+  },
+  "author": "michael@kleehammer.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mkleehammer/koa-rethinkdb/issues"
+  },
+  "homepage": "https://github.com/mkleehammer/koa-rethinkdb",
+  "dependencies": {
+    "debug": "^2.1.0"
+  },
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "co": "^3.1.0",
+    "mocha": "^2.0.1",
+    "rethinkdb": "^1.15.0-0"
+  }
+}
