@@ -1,7 +1,7 @@
 
 "use strict";
 
-var debug = require('debug')('koa-rethinkdb');
+var debug = require('debug')('koa-rethinkdb-pool');
 
 var debugCounter = 0;
 

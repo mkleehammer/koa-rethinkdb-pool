@@ -1,2 +1,2 @@
-koa-rethinkdb
-=============
+koa-rethinkdb-pool
+==================
