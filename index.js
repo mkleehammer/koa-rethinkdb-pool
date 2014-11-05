@@ -42,6 +42,8 @@ module.exports = function(options) {
 
     var cnxn = yield this.connection(); // ensures the counter is allocated before debug logging
 
+    this._rethinkdb_query = query;
+
     debug('[%d] execute %s', this._rethinkdb_counter, query);
 
     var result = yield query.run(cnxn);
@@ -59,6 +61,8 @@ module.exports = function(options) {
     // an object, the result is returned as is.
 
     var cnxn = yield this.connection(); // ensures the counter is allocated before debug logging
+
+    this._rethinkdb_query = query;
 
     debug('[%d] fetchone %s', this._rethinkdb_counter, query);
 
@@ -100,6 +104,8 @@ module.exports = function(options) {
     // an object, the result is returned as is.
 
     var cnxn = yield this.connection();
+
+    this._rethinkdb_query = query;
 
     debug('[%d] fetchall: %s', this._rethinkdb_counter, query);
 
@@ -155,6 +161,8 @@ module.exports = function(options) {
       } catch (error) {
         debug('[%d] an error occurred closing a connection: %s', this._rethinkdb_counter, error);
       }
+
+      delete this._rethinkdb_query;
     }
   };
 };
