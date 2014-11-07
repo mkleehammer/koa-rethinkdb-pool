@@ -8,12 +8,22 @@ var debugCounter = 0;
 module.exports = function(options) {
   /*jshint validthis:true */
 
+  // Note: According to @mlucy at RethinkDB, cursors are closed when the connection is so we
+  // don't need to track them.
+  //
+  // https://github.com/rethinkdb/rethinkdb/issues/3213#issuecomment-62064870
+  
   var r = options.r;
   // This is required to be passed in so that koa-rethinkdb uses your projects version of the
   // RethinkDB driver.
 
   var connectOptions = options.connectOptions;
   // The database connection
+
+  function isCursor(obj) {
+    // TODO: Suggest an r.isCursor() API or something similar.
+    return obj != null && obj._conn != null;
+  }
 
   function* connection() {
     // Return the connection assigned to this request, allocating one if necessary.
@@ -23,7 +33,6 @@ module.exports = function(options) {
 
       debug('[%d] connecting', this._rethinkdb_counter);
       this._rethinkdb_cnxn = yield r.connect(connectOptions);
-      this._rethinkdb_cursors = [];
       debug('[%d] connected', this._rethinkdb_counter);
     } else {
       debug('[%d] use existing', this._rethinkdb_counter);
@@ -32,26 +41,13 @@ module.exports = function(options) {
     return this._rethinkdb_cnxn;
   }
 
-  function isCursor(obj) {
-    // TODO: Suggest an r.isCursor() API or something similar.
-    return obj != null && obj._conn != null;
-  }
-
   function* execute(query) {
     // Executes a RethinkDB query.
 
     var cnxn = yield this.connection(); // ensures the counter is allocated before debug logging
-
     this._rethinkdb_query = query;
-
     debug('[%d] execute %s', this._rethinkdb_counter, query);
-
-    var result = yield query.run(cnxn);
-
-    if (isCursor(result))
-      this._rethinkdb_cursors.push(result);
-
-    return result;
+    return yield query.run(cnxn);
   }
 
   function* fetchone(query) {
@@ -111,11 +107,6 @@ module.exports = function(options) {
 
     var result = yield query.run(this._rethinkdb_cnxn);
 
-    // // Not a cursor?  Did you mean to call fetchone() instead?
-    // console.assert(result && typeof result.toArray === 'function', "fetchall did not return a cursor: query=" +
-    //                query + " result=" + result + " (" + (typeof result) + ")");
-    //
-
     if (!isCursor(result))
       return result;
 
@@ -142,19 +133,9 @@ module.exports = function(options) {
 
     yield next;
 
-    // Cleanup any cursors and connections that were allocated.
+    // Cleanup the connection.
 
     if (this._rethinkdb_cnxn) {
-      for (var i = 0, c = this._rethinkdb_cursors.length; i < c; i++) {
-        try {
-          // Is there any way to tell if a cursor has been closed?
-          yield this._rethinkdb_cursors[i].close();
-        } catch (error) {
-          debug('[%d] an error occurred closing a cursor.  Could simply have been closed already.  error=%s',
-                this._rethinkdb_counter, error);
-        }
-      }
-
       try {
         debug('[%d] closing', this._rethinkdb_counter);
         yield this._rethinkdb_cnxn.close();

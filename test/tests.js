@@ -202,39 +202,6 @@ describe('fetchall', function() {
   });
 });
 
-
-describe('execute', function() {
-  /*jshint validthis:true */
-
-  var wrapper;
-  var ctx;
-
-  before(createTable);
-
-  beforeEach(function() {
-    // Generate a new middleware instance for each test.
-    wrapper = middleware({ r: r });
-    ctx = {};
-  });
-
-  it('should remember cursors', function(done) {
-    co(function*() {
-
-      var cursor;
-
-      function* next() {
-        cursor = yield this.execute(r.table('koa_rethinkdb'));
-      }
-
-      yield wrapper.call(ctx, next);
-
-      assert.strictEqual(ctx._rethinkdb_cursors.length, 1);
-      assert.strictEqual(ctx._rethinkdb_cursors[0], cursor);
-
-    }).call(ctx, done);
-  });
-});
-
 function createTable(done) {
   co(function*() {
     var cnxn = yield r.connect();
