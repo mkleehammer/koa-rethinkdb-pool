@@ -7,8 +7,8 @@ necessary and manage closing that connection when the request completes.
 
 ## Example Usage
 
-During startup, the package with the RethinkDB instance and the connection
-information.
+During startup, initialize the package with the RethinkDB instance and the
+connection information.
 
 Supplying the RethinkDB instance ensures that your project is control of the
 RethinkDB package version.  The connection information is simply the object
