@@ -33,8 +33,8 @@ This installs middleware that will add the following functions to the Koa
 context:
 
 * connection() - Return a Koa connection.
-* execute(query) - Execute a query and returns the result.
-* fetchone(query) - Execute a query and returns the first result value.
+* execute(query) - Execute a query and return the result.
+* fetchone(query) - Execute a query and return the first result value or `null`.
 * fetchall(query) - Execute a query and return an array of results.
 
 ```javascript
@@ -86,26 +86,36 @@ connection is needed.
 
 ### `connection()`
 
-Returns the context's connection, allocating it if necessary.
+Returns the context's connection, allocating it if necessary.  Subsequent calls
+within the same request always return the same connection.
 
 ### `execute(query)`
 
-Executes a query and returns its result.
+Executes a query (which can be an insert or an update) and returns its result.
+
+This is effectively `return yield query.run(cnxn)`.  The result is whatever `run
+returns.
 
 ### `fetchone(query)`
 
 Executes a query and returns the first result object or `null` if there are no
 objects.
 
-This is designed for use with queries that return a cursor, but if the result is
+This is designed for "select"-type queries that you expect to return a single
+object.  It is a convenience wrapper that extracts the first element from the
+results and returns it.  It returns `null` if the query did not return a result.
+
+This method is designed for queries that return a cursor, but if the result is
 not a cursor, the result is returned directly.
 
 ### `fetchall(query)`
 
-Executes a query and returns the results as an array.
+Executes a query and returns the results as an array.  If the query does not
+return results, an empty array is returned.
 
-This is designed for use with queries that return a cursor, but if the result is
-not a cursor, the result is returned directly.
+This method is designed for queries that return a cursor, but if the result is
+not a cursor, the result is returned directly.  However, if the query does not
+return a cursor you should probably use `execute` instead for clarity.
 
 ## Pooling
 
