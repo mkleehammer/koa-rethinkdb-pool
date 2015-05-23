@@ -18,11 +18,22 @@ module.exports = function(options) {
   // RethinkDB driver.
 
   var connectOptions = options.connectOptions;
-  // The database connection
 
   function isCursor(obj) {
     // TODO: Suggest an r.isCursor() API or something similar.
     return obj != null && obj._conn != null;
+  }
+
+  function throwIfError(result, options) {
+    if (!options || options.ignoreFirstError)
+      return;
+
+    // It is an update.  See if there is an error.
+    if (result.replaced !== undefined && result.unchanged !== undefined && result.first_error) {
+      var e = new r.Error.RqlDriverError(result.first_error);
+      e.result = e;
+      throw e;
+    }
   }
 
   function* connection() {
@@ -41,13 +52,20 @@ module.exports = function(options) {
     return this._rethinkdb_cnxn;
   }
 
-  function* execute(query) {
+  function* execute(query, options) {
     // Executes a RethinkDB query.
+
+    options = options || {};
 
     var cnxn = yield this.connection(); // ensures the counter is allocated before debug logging
     this._rethinkdb_query = query;
     debug('[%d] execute %s', this._rethinkdb_counter, query);
-    return yield query.run(cnxn);
+
+    var result = yield query.run(cnxn);
+
+    throwIfError(result, options);
+
+    return result;
   }
 
   function* fetchone(query) {
@@ -72,6 +90,8 @@ module.exports = function(options) {
     if (!isCursor(result)) {
       debug('[%d] fetchone found %d', this._rethinkdb_counter, result == null ? 0 : 1);
       return result;
+    } else {
+      throwIfError(result, options);
     }
 
     try {
@@ -107,8 +127,11 @@ module.exports = function(options) {
 
     var result = yield query.run(this._rethinkdb_cnxn);
 
-    if (!isCursor(result))
+    if (!isCursor(result)) {
       return result;
+    } else {
+      throwIfError(result, options);
+    }
 
     try {
       var rows = yield result.toArray();
@@ -129,21 +152,23 @@ module.exports = function(options) {
     this.fetchone   = fetchone;
     this.fetchall   = fetchall;
 
-    // Run the original request handler.
+    try {
+      // Run the original request handler.
 
-    yield next;
+      yield next;
+    } finally {
+      // Cleanup the connection.
 
-    // Cleanup the connection.
+      if (this._rethinkdb_cnxn) {
+        try {
+          debug('[%d] closing', this._rethinkdb_counter);
+          yield this._rethinkdb_cnxn.close();
+        } catch (error) {
+          debug('[%d] an error occurred closing a connection: %s', this._rethinkdb_counter, error);
+        }
 
-    if (this._rethinkdb_cnxn) {
-      try {
-        debug('[%d] closing', this._rethinkdb_counter);
-        yield this._rethinkdb_cnxn.close();
-      } catch (error) {
-        debug('[%d] an error occurred closing a connection: %s', this._rethinkdb_counter, error);
+        delete this._rethinkdb_query;
       }
-
-      delete this._rethinkdb_query;
     }
   };
 };

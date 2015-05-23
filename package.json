@@ -1,6 +1,6 @@
 {
   "name": "koa-rethinkdb-pool",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Koa middleware for managing RethinkDB connections.",
   "keywords": [
     "rethinkdb",
@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/mkleehammer/koa-rethinkdb-pool",
   "dependencies": {
+    "co": "^4.5.4",
     "debug": "^2.1.0"
   },
   "devDependencies": {

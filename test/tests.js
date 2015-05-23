@@ -23,8 +23,7 @@ describe('middleware', function() {
   });
 
   it('should add methods', function(done) {
-    co(function*() {
-
+    co.call(ctx, function*() {
       function* next() {
       }
       yield wrapper.call(ctx, next);
@@ -34,12 +33,14 @@ describe('middleware', function() {
       assert.isFunction(ctx.fetchone);
       assert.isFunction(ctx.fetchall);
 
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
   });
 
   it('should keep the connection', function(done) {
 
-    co(function* () {
+    co.call(ctx, function* () {
       function* next() {
         var a = yield this.fetchone(r.tableList());
       }
@@ -48,11 +49,14 @@ describe('middleware', function() {
 
       assert.isObject(ctx._rethinkdb_cnxn);
 
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should reuse the connection', function(done) {
-    co(function*() {
+    co.call(ctx, function*() {
 
       var cnxn1, cnxn2;
       function* next() {
@@ -62,9 +66,47 @@ describe('middleware', function() {
       yield wrapper.call(ctx, next);
 
       assert.strictEqual(cnxn1, cnxn2);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 });
+
+describe('execute', function() {
+  /*jshint validthis:true */
+
+  var wrapper;
+  var ctx;
+
+  before(createTable);
+
+  beforeEach(function() {
+    // Generate a new middleware instance for each test.
+    wrapper = middleware({ r: r });
+    ctx = {};
+  });
+
+  it('should raise an error on failed update', function(done) {
+    function* next() {
+      return yield this.execute(
+        r.table('koa_rethinkdb').get('1')
+          .update({
+            bogus: r.row('bogus').append(1)
+          })
+      );
+    }
+
+    co.call(ctx, function*() {
+      return yield next.call(ctx);
+    })
+      .then(function(result) {
+        done(new Error('Did not throw error: ' + result));
+      })
+      .catch(function(err) { done(); });
+  });
+});
+
 
 describe('fetchone', function() {
   /*jshint validthis:true */
@@ -79,8 +121,25 @@ describe('fetchone', function() {
     ctx = {};
   });
 
+  it('should raise an error on failed update', function(done) {
+    co.call(ctx, function*() {
+      function* next() {
+        return yield this.fetchone(
+          r.table('bogus').get('1')
+        );
+      }
+      return yield wrapper.call(ctx, next);
+    })
+      .then(function(result) {
+        done(new Error('Did not throw error: ' + result));
+      })
+      .catch(function(err) {
+        done();
+      });
+  });
+
   it('should return null', function(done) {
-    co(function*() {
+    co.call(ctx, function*() {
 
       var result;
       function* next() {
@@ -90,11 +149,14 @@ describe('fetchone', function() {
 
       assert.isNull(result);
 
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should return ints', function(done) {
-    co(function* () {
+    co.call(ctx, function* () {
       var result;
       function* next() {
         result = yield this.fetchone(
@@ -105,22 +167,28 @@ describe('fetchone', function() {
       }
       yield wrapper.call(ctx, next);
       assert.strictEqual(result, 0);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should pass through arrays', function(done) {
-    co(function* () {
+    co.call(ctx, function* () {
       var result;
       function* next() {
         result = yield this.fetchone(r.tableList());
       }
       yield wrapper.call(ctx, next);
       assert.isArray(result);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should return a row', function(done) {
-    co(function*() {
+    co.call(ctx, function*() {
       var result;
       function* next() {
         result = yield this.fetchone(
@@ -130,8 +198,12 @@ describe('fetchone', function() {
       }
       yield wrapper.call(ctx, next);
       assert.deepEqual({ id: '1', val: 'one' }, result);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
+
 });
 
 
@@ -149,7 +221,7 @@ describe('fetchall', function() {
   });
 
   it('should return null', function(done) {
-    co(function*() {
+    co.call(ctx, function*() {
 
       var result;
       function* next() {
@@ -159,11 +231,14 @@ describe('fetchall', function() {
 
       assert.isNull(result);
 
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should return ints', function(done) {
-    co(function* () {
+    co.call(ctx, function* () {
       var result;
       function* next() {
         result = yield this.fetchall(
@@ -174,22 +249,27 @@ describe('fetchall', function() {
       }
       yield wrapper.call(ctx, next);
       assert.strictEqual(result, 0);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 
   it('should pass through arrays', function(done) {
-    co(function* () {
+    co.call(ctx, function* () {
       var result;
       function* next() {
         result = yield this.fetchall(r.tableList());
       }
       yield wrapper.call(ctx, next);
       assert.isArray(result);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
   });
 
   it('should coerce streams', function(done) {
-    co(function*() {
+    co.call(ctx, function*() {
       var result;
       function* next() {
         result = yield this.fetchall(
@@ -198,7 +278,10 @@ describe('fetchall', function() {
       }
       yield wrapper.call(ctx, next);
       assert.isArray(result);
-    }).call(ctx, done);
+    })
+      .then(done)
+      .catch(done);
+
   });
 });
 
@@ -213,5 +296,7 @@ function createTable(done) {
       { id: '3', val: 'three' }
     ]).run(cnxn);
     yield cnxn.close();
-  }).call(null, done);
+  })
+    .then(function() { done(); })
+    .catch(done);
 }
